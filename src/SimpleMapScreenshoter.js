@@ -27,7 +27,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
         mimeType: 'image/png',
         debugMode: false,
         preventDownload: false,
-        onPixelDataFail: function ({ node, error }) {
+        onPixelDataFail: function ({node, error}) {
             console.warn(`Map node is very big ${node.scrollWidth}x${node.scrollHeight}`)
             console.warn(`Add function: SimpleMapScreenshoter({
               onPixelDataFail: function({ node, plugin, error, mapPane, domtoimageOptions }) {
@@ -42,7 +42,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
             return Promise.reject(error)
         }
     },
-    onAdd () {
+    onAdd() {
         this._container = L.DomUtil.create(
             'div',
             'leaflet-control-simpleMapScreenshoter'
@@ -72,7 +72,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
      * @param sreenOptions {Object}
      * @returns {Promise<Blob>|Promise<Base64>} Blob or png image
      */
-    takeScreen (format = 'blob', sreenOptions = {}) {
+    takeScreen(format = 'blob', sreenOptions = {}) {
         const options = {}
         for (let opt in this.options) {
             if (sreenOptions.hasOwnProperty(opt)) {
@@ -117,7 +117,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
      * @param isVisible
      * @private
      */
-    _setElementsVisible (isVisible = false) {
+    _setElementsVisible(isVisible = false) {
         this.options.hideElementsWithSelectors.forEach(selector => {
             const els = this._map._container.querySelectorAll(selector)
             for (let el of els) {
@@ -127,13 +127,37 @@ export const SimpleMapScreenshoter = L.Control.extend({
             }
         })
     },
+    _convertImageToBase64(imgUrl) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.crossOrigin = 'anonymous';
+            image.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.height = image.naturalHeight;
+                canvas.width = image.naturalWidth;
+                ctx?.drawImage(image, 0, 0);
+                const dataUrl = canvas.toDataURL();
+                resolve(dataUrl);
+            };
+            image.onerror = () => {
+                reject();
+            };
+            image.src = imgUrl;
+        });
+    },
+
     /**
      * @param canvas
      * @param mimeType
      * @returns {Promise<Base64>}
      * @private
      */
-    _canvasToImage (canvas, {mimeType}) {
+    _canvasToImage(canvas, {mimeType}) {
+        if (canvas.includes('http')) {
+            const image = this._convertImageToBase64(canvas);
+            return Promise.resolve(image)
+        }
         const image = canvas.toDataURL(mimeType)
         if (image.indexOf('base64') === -1) {
             return Promise.reject(new Error('Base64 image generation error'))
@@ -145,7 +169,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
      * @returns {Promise<Blob>}
      * @private
      */
-    _canvasToBlob (canvas, {mimeType}) {
+    _canvasToBlob(canvas, {mimeType}) {
         return new Promise((resolve, reject) => {
             canvas.toBlob(blob => {
                 resolve(blob)
@@ -158,7 +182,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
      * @returns {Promise<Canvas>}
      * @private
      */
-    _toCanvas (pixels, options) {
+    _toCanvas(pixels, options) {
         let {captionOffset, caption, captionFontSize, captionFont, captionColor, captionBgColor} = options
         let {screenHeight, screenWidth} = this._node
         let canvas = document.createElement('canvas')
@@ -303,7 +327,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
      * @returns {{min: number, max: number}}
      * @private
      */
-    _getMinAndMaxOnValuesBreak (arr) {
+    _getMinAndMaxOnValuesBreak(arr) {
         let min = 0
         let max = 0
         let hasBreak = false
@@ -332,7 +356,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
      * @returns {Promise<Uint8Array>}
      * @private
      */
-    _getPixelData ({domtoimageOptions = {}}) {
+    _getPixelData({domtoimageOptions = {}}) {
         /**
          * 1) we try try to get full map size screen, but we have problem of big canvas:
          * https://stackoverflow.com/questions/6081483/maximum-size-of-a-canvas-element
@@ -350,7 +374,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
             return this._getPixelDataOfBigMap(domtoimageOptions)
         })
     },
-    _getPixelDataOfNormalMap (domtoimageOptions = {}) {
+    _getPixelDataOfNormalMap(domtoimageOptions = {}) {
         const node = this._map.getContainer()
 
         this._node = {
@@ -361,7 +385,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
 
         return domtoimage.toPixelData(node, domtoimageOptions)
     },
-    _getPixelDataOfBigMap (domtoimageOptions = {}) {
+    _getPixelDataOfBigMap(domtoimageOptions = {}) {
         const node = this._map.getContainer()
 
         // fix: https://github.com/grinat/leaflet-simple-map-screenshoter/issues/7
@@ -408,7 +432,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
     /**
      * @private
      */
-    _addScreenBtn () {
+    _addScreenBtn() {
         this._link = L.DomUtil.create(
             'a',
             'leaflet-control-simpleMapScreenshoter-btn',
@@ -421,7 +445,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
     /**
      * @private
      */
-    _addCss () {
+    _addCss() {
         let css = `
     .leaflet-control-simpleMapScreenshoter{
        border: 2px solid rgba(0,0,0,0.2);
@@ -460,7 +484,7 @@ export const SimpleMapScreenshoter = L.Control.extend({
     /**
      * @private
      */
-    _onScreenBtn () {
+    _onScreenBtn() {
         this._map.fire('simpleMapScreenshoter.click')
         if (this.options.preventDownload) return
 
@@ -474,13 +498,13 @@ export const SimpleMapScreenshoter = L.Control.extend({
             this._map.fire('simpleMapScreenshoter.error', {e})
         })
     },
-    _onUserStartInteractWithMap () {
+    _onUserStartInteractWithMap() {
         this._interaction = true
     },
-    _onUserEndInteractWithMap () {
+    _onUserEndInteractWithMap() {
         this._interaction = false
     },
-    _waitEndOfInteractions () {
+    _waitEndOfInteractions() {
         return new Promise(resolve => {
             const interval = setInterval(() => {
                 if (!this._interaction) {
